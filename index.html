@@ -161,6 +161,22 @@
                 background: #f0f8ff;
             }
 
+            .paid-row {
+                background: #d4edda !important;
+                opacity: 0.8;
+            }
+
+            .paid-row:hover {
+                background: #c3e6cb !important;
+            }
+
+            input[type="checkbox"] {
+                width: auto;
+                margin: 0;
+                cursor: pointer;
+                transform: scale(1.2);
+            }
+
             .summary {
                 margin-top: 15px;
                 font-weight: bold;
@@ -420,7 +436,7 @@
 
         <script>
             // Hardcoded Google Apps Script Web App URL
-            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJYnjmbB78wUqA8cuzlEtkKabHEoL_ylrZngqn_lVRczEFkIM4M4oDeunJiCZoA0ks/exec"
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOTuCEWCVk11PG2IrDTqs1GpAiBQXyDOOrN7RwGnx7af7bUqCTv51Kau-f9uC7rKya/exec"
 
             let entries = JSON.parse(localStorage.getItem("entries")) || [];
             const statusMsg = document.getElementById("statusMsg");
@@ -567,7 +583,8 @@
                                 date: String(e.date || '').trim(),
                                 cashIn: parseFloat(e.cashIn) || 0,
                                 plan: String(e.plan || '1').trim(),
-                                notes: String(e.notes || '').trim()
+                                notes: String(e.notes || '').trim(),
+                                paid: e.paid === true || e.paid === 'true' || e.paid === 1 || false
                             };
                         }).filter(e => e.client && e.date); // Only keep entries with required fields
 
@@ -732,7 +749,8 @@
                     date: date.value,
                     cashIn: parseFloat(cashIn.value),
                     plan: plan.value,
-                    notes: notes.value.trim().substring(0, 500) // Limit to 500 chars
+                    notes: notes.value.trim().substring(0, 500), // Limit to 500 chars
+                    paid: false // Default to unpaid
                 };
 
                 // Show loading message
@@ -803,6 +821,59 @@
                 notes.value = "";
             }
 
+            function togglePaidStatus(entryId, isPaid) {
+                // Find the entry and update its paid status
+                const entryIndex = entries.findIndex((e, index) => {
+                    const id = `${e.date}_${e.client}_${index}`;
+                    return id === entryId;
+                });
+
+                if (entryIndex !== -1) {
+                    entries[entryIndex].paid = isPaid;
+                    localStorage.setItem("entries", JSON.stringify(entries));
+
+                    // Optionally sync to Google Sheets (async, non-blocking)
+                    syncPaidStatusToSheets(entries[entryIndex]);
+
+                    // Re-render to update the visual state
+                    render();
+
+                    showStatus(isPaid ? "✓ Marked as paid" : "Entry marked as unpaid", 'success');
+                    setTimeout(() => hideStatus(), 2000);
+                }
+            }
+
+            async function syncPaidStatusToSheets(entry) {
+                // This is a non-blocking sync - we don't wait for it
+                const scriptUrl = getScriptUrl();
+                if (!scriptUrl || window.location.protocol === 'file:') {
+                    return; // Skip if no URL or file:// protocol
+                }
+
+                try {
+                    const formData = new URLSearchParams();
+                    formData.append('data', JSON.stringify({
+                        action: 'updatePaid',
+                        data: {
+                            date: entry.date,
+                            client: entry.client,
+                            paid: entry.paid
+                        }
+                    }));
+
+                    fetch(scriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: formData.toString()
+                    });
+                } catch (error) {
+                    console.log('Failed to sync paid status:', error);
+                }
+            }
+
             function render() {
                 const cyclesDiv = document.getElementById("cycles");
                 cyclesDiv.innerHTML = "";
@@ -811,10 +882,10 @@
 
                 const grouped = {};
 
-                entries.forEach(e => {
+                entries.forEach((e, index) => {
                     const c = getCycle(e.date);
                     if (!grouped[c]) grouped[c] = [];
-                    grouped[c].push(e);
+                    grouped[c].push({ ...e, _index: index }); // Store index for unique ID
                 });
 
                 for (let c in grouped) {
@@ -826,12 +897,12 @@
 
                     let table = `<table>
         <tr>
-            <th>Date</th><th>Client</th><th>Phone</th>
+            <th>Paid</th><th>Date</th><th>Client</th><th>Phone</th>
             <th>Cash In</th><th>Plan</th><th>Profit</th>
             <th>Cash Out Date</th><th>Notes</th>
         </tr>`;
 
-                    grouped[c].forEach(e => {
+                    grouped[c].forEach((e) => {
                         let p = e.plan == "1" ? e.cashIn * 0.05 : e.cashIn * 0.15;
                         cin += e.cashIn;
                         profit += p;
@@ -839,8 +910,18 @@
                         // Calculate cash out date
                         const cashOutDate = calculateCashOutDate(e.date, e.plan);
 
+                        // Create unique ID for this entry using the stored index
+                        const entryId = `${e.date}_${e.client}_${e._index || 0}`;
+                        const paidStatus = e.paid === true || e.paid === 'true' || e.paid === 1;
+                        const rowClass = paidStatus ? 'paid-row' : '';
+
                         table += `
-            <tr>
+            <tr class="${rowClass}" data-entry-id="${entryId}">
+                <td>
+                    <input type="checkbox" ${paidStatus ? 'checked' : ''} 
+                           onchange="togglePaidStatus('${entryId}', this.checked)"
+                           title="Mark as paid">
+                </td>
                 <td>${formatDate(e.date)}</td>
                 <td>${e.client}</td>
                 <td>${e.phone || '-'}</td>

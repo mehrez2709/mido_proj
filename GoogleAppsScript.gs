@@ -81,13 +81,31 @@ function doPost(e) {
       throw new Error('No data received');
     }
     
+    // Handle update paid status
+    if (data.action === 'updatePaid' && data.data) {
+      const updateData = data.data;
+      const sheet = getSheet();
+      const dataRange = sheet.getDataRange().getValues();
+      
+      // Find the row to update
+      for (let i = 1; i < dataRange.length; i++) {
+        const row = dataRange[i];
+        if (String(row[0]) === String(updateData.date) && String(row[1]) === String(updateData.client)) {
+          // Update paid status (column index 6, which is column 7 in 1-based)
+          sheet.getRange(i + 1, 7).setValue(updateData.paid);
+          return createCorsResponse({ success: true, message: 'Paid status updated' });
+        }
+      }
+      return createCorsResponse({ success: false, error: 'Entry not found' });
+    }
+    
     if (data.action === 'add' && data.data) {
       const entry = data.data;
       const sheet = getSheet();
       
       // Initialize headers if sheet is empty
       if (sheet.getLastRow() === 0) {
-        sheet.appendRow(['Date', 'Client', 'Phone', 'Cash In', 'Plan', 'Notes']);
+        sheet.appendRow(['Date', 'Client', 'Phone', 'Cash In', 'Plan', 'Notes', 'Paid']);
       }
       
       // Calculate cash out date based on plan
@@ -103,7 +121,8 @@ function doPost(e) {
         entry.phone || '',
         entry.cashIn || 0,
         entry.plan,
-        entry.notes || ''
+        entry.notes || '',
+        entry.paid || false
       ]);
       
       return createCorsResponse({ success: true, message: 'Entry added successfully' });
@@ -202,7 +221,8 @@ function doGet(e) {
               phone: row[2] ? String(row[2]).trim() : '',
               cashIn: parseFloat(row[3]) || 0,
               plan: row[4] ? String(row[4]).trim() : '1',
-              notes: row[5] ? String(row[5]).trim() : ''
+              notes: row[5] ? String(row[5]).trim() : '',
+              paid: row[6] === true || row[6] === 'true' || row[6] === 1 || row[6] === '1' || false
             };
           } else {
             // Old format: Date, Client, Cash In, Cash Out, Plan, Notes
@@ -222,7 +242,8 @@ function doGet(e) {
               phone: '', // No phone in old format
               cashIn: parseFloat(row[2]) || 0,
               plan: row[4] ? String(row[4]).trim() : '1',
-              notes: row[5] ? String(row[5]).trim() : ''
+              notes: row[5] ? String(row[5]).trim() : '',
+              paid: row[6] === true || row[6] === 'true' || row[6] === 1 || false
             };
           }
           
