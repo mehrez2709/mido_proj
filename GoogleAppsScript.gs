@@ -107,23 +107,49 @@ function doPost(e) {
       
       // Find the row to update (match by date and client)
       let found = false;
+      const updateDate = String(updateData.date).trim();
+      const updateClient = String(updateData.client).trim();
+      const paidValue = updateData.paid === true || updateData.paid === 'true' || updateData.paid === 1 || updateData.paid === '1';
+      
       for (let i = 1; i < dataRange.length; i++) {
         const row = dataRange[i];
-        const rowDate = row[0] instanceof Date ? row[0].toISOString().split('T')[0] : String(row[0]);
-        const rowClient = String(row[1]).trim();
-        const updateDate = String(updateData.date).trim();
-        const updateClient = String(updateData.client).trim();
         
+        // Handle date comparison - Google Sheets dates can be Date objects or strings
+        let rowDate = row[0];
+        if (rowDate instanceof Date) {
+          rowDate = rowDate.toISOString().split('T')[0];
+        } else {
+          rowDate = String(rowDate).trim();
+          // Try to parse as date and convert to YYYY-MM-DD
+          const dateObj = new Date(rowDate);
+          if (!isNaN(dateObj.getTime())) {
+            rowDate = dateObj.toISOString().split('T')[0];
+          }
+        }
+        
+        const rowClient = String(row[1]).trim();
+        
+        // Compare dates and clients
         if (rowDate === updateDate && rowClient === updateClient) {
           // Update paid status
-          sheet.getRange(i + 1, paidColumnIndex).setValue(updateData.paid === true || updateData.paid === 'true' || updateData.paid === 1);
+          sheet.getRange(i + 1, paidColumnIndex).setValue(paidValue);
           found = true;
-          return createCorsResponse({ success: true, message: 'Paid status updated successfully' });
+          return createCorsResponse({ 
+            success: true, 
+            message: 'Paid status updated successfully',
+            row: i + 1,
+            column: paidColumnIndex,
+            value: paidValue
+          });
         }
       }
       
       if (!found) {
-        return createCorsResponse({ success: false, error: 'Entry not found. Date: ' + updateData.date + ', Client: ' + updateData.client });
+        // Return detailed error for debugging
+        return createCorsResponse({ 
+          success: false, 
+          error: 'Entry not found. Looking for Date: "' + updateDate + '", Client: "' + updateClient + '". Total rows: ' + (dataRange.length - 1)
+        });
       }
     }
     
