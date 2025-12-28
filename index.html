@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+            content="Investment Cash Cycle Dashboard - Track and manage investment transactions with automated profit calculations">
+        <meta name="keywords" content="investment, dashboard, cash cycle, finance, tracking">
+        <meta name="author" content="Investment Dashboard">
+        <meta name="theme-color" content="#0a4da2">
+        <title>Investment Cash Cycle Dashboard</title>
+
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: #f4f7f6;
+                line-height: 1.6;
+                color: #333;
+                min-height: 100vh;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+
+            h1 {
+                text-align: center;
+                color: #0a4da2;
+                margin-bottom: 20px;
+                font-size: clamp(1.5rem, 4vw, 2rem);
+            }
+
+            h3 {
+                margin: 20px 0 10px 0;
+                color: #0a4da2;
+                font-size: clamp(1.1rem, 3vw, 1.3rem);
+            }
+
+            input,
+            textarea,
+            select,
+            button {
+                width: 100%;
+                padding: 12px;
+                margin-top: 8px;
+                border-radius: 5px;
+                border: 2px solid #ddd;
+                font-size: 16px;
+                transition: all 0.3s ease;
+            }
+
+            input:focus,
+            textarea:focus,
+            select:focus {
+                outline: none;
+                border-color: #0a4da2;
+                box-shadow: 0 0 0 3px rgba(10, 77, 162, 0.1);
+            }
+
+            input:invalid:not(:placeholder-shown):not(:focus) {
+                border-color: #dc3545;
+            }
+
+            input:valid:not(:placeholder-shown):not(:focus) {
+                border-color: #28a745;
+            }
+
+            #phone:invalid:not(:placeholder-shown):not(:focus) {
+                border-color: #dc3545;
+            }
+
+            #phone:valid:not(:placeholder-shown):not(:focus) {
+                border-color: #28a745;
+            }
+
+            button {
+                background: #0a4da2;
+                color: white;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+                padding: 14px;
+                margin-top: 15px;
+                transition: all 0.3s ease;
+            }
+
+            button:hover:not(:disabled) {
+                background: #0c7c59;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            button:active:not(:disabled) {
+                transform: translateY(0);
+            }
+
+            button:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+
+            .cycle {
+                margin-top: 25px;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                background: #fafafa;
+                overflow-x: auto;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                min-width: 800px;
+            }
+
+            th,
+            td {
+                border: 1px solid #ccc;
+                padding: 10px 8px;
+                text-align: center;
+                font-size: 14px;
+            }
+
+            th {
+                background: #e9f2ff;
+                font-weight: 600;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+
+            tr:nth-child(even) {
+                background: #f9f9f9;
+            }
+
+            tr:hover {
+                background: #f0f8ff;
+            }
+
+            .summary {
+                margin-top: 15px;
+                font-weight: bold;
+                color: #0c7c59;
+                padding: 10px;
+                background: #f0f8ff;
+                border-radius: 5px;
+                text-align: center;
+            }
+
+            .dashboard {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .box {
+                padding: 20px 15px;
+                border-radius: 8px;
+                background: #e9f2ff;
+                text-align: center;
+                font-weight: bold;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                transition: transform 0.2s ease;
+            }
+
+            .box:hover {
+                transform: translateY(-3px);
+            }
+
+            .box span {
+                display: block;
+                font-size: 1.8em;
+                margin-top: 8px;
+                color: #0a4da2;
+            }
+
+            .green {
+                background: #e6f7f1;
+            }
+
+            .green span {
+                color: #0c7c59;
+            }
+
+            .status-success {
+                background: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+
+            .status-error {
+                background: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+
+            .status-warning {
+                background: #fff3cd;
+                color: #856404;
+                border: 1px solid #ffeaa7;
+            }
+
+            .status-info {
+                background: #d1ecf1;
+                color: #0c5460;
+                border: 1px solid #bee5eb;
+            }
+
+            .loading {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: #fff;
+                animation: spin 1s ease-in-out infinite;
+                margin-right: 10px;
+                vertical-align: middle;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .error-message {
+                color: #dc3545;
+                font-size: 12px;
+                margin-top: 4px;
+                display: block;
+            }
+
+            /* Responsive Design */
+            @media (max-width: 768px) {
+                .container {
+                    padding: 15px;
+                    margin: 10px;
+                    border-radius: 0;
+                }
+
+                .dashboard {
+                    grid-template-columns: 1fr;
+                    gap: 10px;
+                }
+
+                .box {
+                    padding: 15px;
+                }
+
+                .box span {
+                    font-size: 1.5em;
+                }
+
+                table {
+                    font-size: 12px;
+                }
+
+                th,
+                td {
+                    padding: 8px 4px;
+                }
+
+                .cycle {
+                    padding: 10px;
+                }
+
+                input,
+                textarea,
+                select,
+                button {
+                    padding: 10px;
+                    font-size: 16px;
+                    /* Prevents zoom on iOS */
+                }
+
+                h1 {
+                    font-size: 1.5rem;
+                }
+
+                h3 {
+                    font-size: 1.1rem;
+                }
+            }
+
+            @media (max-width: 480px) {
+                table {
+                    font-size: 11px;
+                    min-width: 600px;
+                }
+
+                th,
+                td {
+                    padding: 6px 3px;
+                }
+
+                .summary {
+                    font-size: 12px;
+                    padding: 8px;
+                }
+            }
+
+            /* Print Styles */
+            @media print {
+                body {
+                    background: white;
+                }
+
+                .container {
+                    box-shadow: none;
+                }
+
+                button,
+                #corsWarning,
+                #statusMsg {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <h1>Investment Cash Cycle Dashboard</h1>
+
+        <div class="container">
+
+            <!-- DASHBOARD -->
+            <div class="dashboard">
+                <div class="box">Total Cash In<br><span id="totalIn">0</span></div>
+                <div class="box green">Total Profit<br><span id="totalProfit">0</span></div>
+                <div class="box green">Total Return<br><span id="netBalance">0</span></div>
+            </div>
+
+            <!-- CORS WARNING -->
+            <div id="corsWarning"
+                style="background: #f8d7da; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #dc3545; display: none;">
+                <h3 style="margin-top: 0; color: #721c24;">⚠️ CORS Error Detected</h3>
+                <p style="color: #721c24; margin: 10px 0;">You're opening this file directly. To use Google Sheets
+                    integration, you need to run a local web server.</p>
+                <div style="background: white; padding: 10px; border-radius: 3px; margin-top: 10px;">
+                    <strong>Quick Fix - Run a local server:</strong>
+                    <ol style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>Python:</strong> Open terminal in this folder and run: <code
+                                style="background: #f4f4f4; padding: 2px 5px; border-radius: 3px;">python3 -m http.server 8000</code>
+                        </li>
+                        <li>Then open: <code
+                                style="background: #f4f4f4; padding: 2px 5px; border-radius: 3px;">http://localhost:8000</code>
+                        </li>
+                    </ol>
+                    <p style="margin: 10px 0 0 0; font-size: 12px;">Or use Node.js: <code
+                            style="background: #f4f4f4; padding: 2px 5px; border-radius: 3px;">npx http-server</code>
+                    </p>
+                </div>
+            </div>
+
+            <!-- STATUS MESSAGE -->
+            <div id="statusMsg"
+                style="margin: 0 0 20px 0; padding: 10px; border-radius: 5px; font-size: 14px; min-height: 20px; display: none; word-wrap: break-word;">
+            </div>
+
+            <!-- ENTRY FORM -->
+            <h3>New Transaction</h3>
+            <form id="entryForm" onsubmit="event.preventDefault(); addEntry();">
+                <input id="client" placeholder="Client Name" required minlength="2" maxlength="100"
+                    title="Client name must be between 2 and 100 characters">
+                <span class="error-message" id="clientError"></span>
+
+                <input id="phone" type="tel" placeholder="Phone Number (Optional)" pattern="[0-9+\-\s()]+"
+                    title="Enter a valid phone number (7-15 digits)" maxlength="20">
+                <span class="error-message" id="phoneError"></span>
+
+                <input id="date" type="date" required max="" title="Select a valid date">
+                <span class="error-message" id="dateError"></span>
+
+                <input id="cashIn" type="number" placeholder="Cash In Amount" min="0.01" step="0.01" required
+                    max="999999999" title="Enter a valid amount">
+                <span class="error-message" id="cashInError"></span>
+
+                <select id="plan" required title="Select an investment plan">
+                    <option value="">-- Select Plan --</option>
+                    <option value="1">Monthly Plan (5%)</option>
+                    <option value="3">3 Months Plan (15%)</option>
+                </select>
+                <span class="error-message" id="planError"></span>
+
+                <textarea id="notes" placeholder="Notes (Optional)" maxlength="500" rows="3"></textarea>
+
+                <button type="submit" id="submitBtn">Add Entry</button>
+            </form>
+
+            <div id="cycles"></div>
+
+        </div>
+
+        <script>
+            // Hardcoded Google Apps Script Web App URL
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcpoBLHCzfDCrOt8dPU7fw7pB8jx5nuOu2TYqtEWwUbgya9HMewiawVbfwZBnQus-8/exec';
+
+            let entries = JSON.parse(localStorage.getItem("entries")) || [];
+            const statusMsg = document.getElementById("statusMsg");
+            const corsWarning = document.getElementById("corsWarning");
+
+            // Check if running from file:// protocol (CORS issue)
+            if (window.location.protocol === 'file:') {
+                corsWarning.style.display = 'block';
+            }
+
+            function getScriptUrl() {
+                return GOOGLE_SCRIPT_URL;
+            }
+
+            function showStatus(message, type = 'info') {
+                statusMsg.textContent = message;
+                statusMsg.className = `status-${type}`;
+                statusMsg.style.display = 'block';
+            }
+
+            function hideStatus() {
+                statusMsg.style.display = 'none';
+                statusMsg.textContent = '';
+                statusMsg.className = '';
+            }
+
+
+            async function submitToGoogleSheets(entry) {
+                const scriptUrl = getScriptUrl();
+                if (!scriptUrl) {
+                    return {
+                        success: false,
+                        error: "Google Script URL not configured. Please enter and save your Web App URL in the configuration section above."
+                    };
+                }
+
+                // Check for CORS issues
+                if (window.location.protocol === 'file:') {
+                    return {
+                        success: false,
+                        error: "CORS Error: You're opening this file directly. Please run a local server (see warning above) and access via http://localhost:8000"
+                    };
+                }
+
+                try {
+                    // Use JSON POST with proper error handling
+                    const response = await fetch(scriptUrl, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'add',
+                            data: entry
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorData;
+                        try {
+                            errorData = JSON.parse(errorText);
+                        } catch (e) {
+                            errorData = { error: `HTTP error! status: ${response.status}` };
+                        }
+                        return {
+                            success: false,
+                            error: errorData.error || `Server error (${response.status}). Please check your Google Apps Script configuration.`
+                        };
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        return { success: true, message: result.message || 'Entry added successfully' };
+                    } else {
+                        return {
+                            success: false,
+                            error: result.error || 'Failed to add entry to Google Sheets. Please check your script configuration.'
+                        };
+                    }
+
+                } catch (error) {
+                    console.error("Error submitting to Google Sheets:", error);
+                    const errorMessage = error.message || error.toString();
+
+                    let userFriendlyError = "Failed to connect to Google Sheets. ";
+
+                    if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+                        userFriendlyError += "Please ensure your Google Apps Script Web App is deployed with 'Anyone' access.";
+                    } else if (errorMessage.includes('NetworkError') || errorMessage.includes('network')) {
+                        userFriendlyError += "Network error: Check your internet connection.";
+                    } else {
+                        userFriendlyError += `Error: ${errorMessage}`;
+                    }
+
+                    return {
+                        success: false,
+                        error: userFriendlyError
+                    };
+                }
+            }
+
+            async function loadFromSheets() {
+                const scriptUrl = getScriptUrl();
+
+                // Check for CORS issues
+                if (window.location.protocol === 'file:') {
+                    showStatus("CORS Error: Please run a local server (see warning above)", 'error');
+                    corsWarning.style.display = 'block';
+                    return;
+                }
+
+                showStatus("Loading data from Google Sheets...", 'info');
+
+                try {
+                    const url = `${scriptUrl}?action=get`;
+                    const response = await fetch(url, {
+                        mode: 'cors'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success && Array.isArray(data.entries)) {
+                        // Validate and clean entries
+                        entries = data.entries.map(e => {
+                            return {
+                                client: String(e.client || '').trim(),
+                                phone: String(e.phone || '').trim(),
+                                date: String(e.date || '').trim(),
+                                cashIn: parseFloat(e.cashIn) || 0,
+                                plan: String(e.plan || '1').trim(),
+                                notes: String(e.notes || '').trim()
+                            };
+                        }).filter(e => e.client && e.date); // Only keep entries with required fields
+
+                        localStorage.setItem("entries", JSON.stringify(entries));
+                        render();
+                        showStatus(`✓ Loaded ${entries.length} entries from Google Sheets`, 'success');
+                        setTimeout(() => hideStatus(), 3000);
+                    } else {
+                        const errorMsg = data.error || "Failed to load data";
+                        throw new Error(errorMsg);
+                    }
+                } catch (error) {
+                    console.error("Error loading from Google Sheets:", error);
+                    const errorMessage = error.message || error.toString();
+
+                    // Show more helpful error message
+                    if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+                        showStatus("CORS Error: Please run a local server (see warning above)", 'error');
+                        corsWarning.style.display = 'block';
+                    } else if (errorMessage.includes('SHEET_ID is not configured')) {
+                        showStatus("Error: Please configure SHEET_ID in your Google Apps Script", 'error');
+                    } else if (errorMessage.includes('not found')) {
+                        showStatus("Error: Sheet name mismatch. Check SHEET_NAME in your script", 'error');
+                    } else {
+                        showStatus(`Error: ${errorMessage}`, 'error');
+                    }
+                }
+            }
+
+            /**
+             * Unified date formatting function
+             * Formats date as "MMM DD, YYYY" (e.g., "Jan 15, 2024")
+             */
+            function formatDate(dateStr) {
+                if (!dateStr) return '-';
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr; // Return original if invalid
+
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = months[date.getMonth()];
+                const day = date.getDate();
+                const year = date.getFullYear();
+
+                return `${month} ${day}, ${year}`;
+            }
+
+            function getCycle(dateStr) {
+                const d = new Date(dateStr);
+                let m = d.getMonth();
+                let y = d.getFullYear();
+
+                if (d.getDate() < 25) {
+                    m--;
+                    if (m < 0) { m = 11; y--; }
+                }
+
+                const start = new Date(y, m, 25);
+                const end = new Date(y, m + 1, 26);
+
+                return formatDate(start.toISOString().split('T')[0]) + " → " + formatDate(end.toISOString().split('T')[0]);
+            }
+
+            function validateClient(client) {
+                const trimmed = client.trim();
+                return trimmed.length >= 2 && trimmed.length <= 100 && /^[a-zA-Z0-9\s\-'.,]+$/.test(trimmed);
+            }
+
+            function validatePhone(phone) {
+                if (!phone || phone.trim() === '') return true; // Optional field
+                const digitsOnly = phone.replace(/\D/g, '');
+                return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+            }
+
+            function validateDate(dateStr) {
+                if (!dateStr) return false;
+                const date = new Date(dateStr);
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                return !isNaN(date.getTime()) && date <= today;
+            }
+
+            function validateCashIn(amount) {
+                const num = parseFloat(amount);
+                return !isNaN(num) && num > 0 && num <= 999999999;
+            }
+
+            function formatPhone(phone) {
+                return phone.trim();
+            }
+
+            function clearErrors() {
+                document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            }
+
+            function showFieldError(fieldId, message) {
+                const errorEl = document.getElementById(fieldId + 'Error');
+                if (errorEl) {
+                    errorEl.textContent = message;
+                }
+            }
+
+            function calculateCashOutDate(entryDate, plan) {
+                const date = new Date(entryDate);
+                const months = plan == "1" ? 1 : 3; // 1 month for plan 1, 3 months for plan 3
+                date.setMonth(date.getMonth() + months);
+                return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+            }
+
+            async function addEntry() {
+                clearErrors();
+                let hasErrors = false;
+
+                // Validate Client Name
+                if (!client.value || !validateClient(client.value)) {
+                    showFieldError('client', 'Client name must be 2-100 characters and contain only letters, numbers, and common punctuation');
+                    hasErrors = true;
+                }
+
+                // Validate Phone (optional but must be valid if provided)
+                if (phone.value && !validatePhone(phone.value)) {
+                    showFieldError('phone', 'Phone number must contain 7-15 digits');
+                    hasErrors = true;
+                }
+
+                // Validate Date
+                if (!date.value) {
+                    showFieldError('date', 'Date is required');
+                    hasErrors = true;
+                } else if (!validateDate(date.value)) {
+                    showFieldError('date', 'Date cannot be in the future');
+                    hasErrors = true;
+                }
+
+                // Validate Cash In
+                if (!cashIn.value || !validateCashIn(cashIn.value)) {
+                    showFieldError('cashIn', 'Cash In must be a positive number (max: 999,999,999)');
+                    hasErrors = true;
+                }
+
+                // Validate Plan
+                if (!plan.value) {
+                    showFieldError('plan', 'Please select an investment plan');
+                    hasErrors = true;
+                }
+
+                if (hasErrors) {
+                    showStatus("⚠ Please fix the errors above", 'error');
+                    setTimeout(() => hideStatus(), 5000);
+                    return;
+                }
+
+                // Disable submit button
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="loading"></span> Adding...';
+
+                const newEntry = {
+                    client: client.value.trim(),
+                    phone: formatPhone(phone.value) || '',
+                    date: date.value,
+                    cashIn: parseFloat(cashIn.value),
+                    plan: plan.value,
+                    notes: notes.value.trim().substring(0, 500) // Limit to 500 chars
+                };
+
+                // Show loading message
+                showStatus("Adding entry to Google Sheets...", 'info');
+
+                // Save locally first (as backup)
+                entries.push(newEntry);
+                localStorage.setItem("entries", JSON.stringify(entries));
+
+                // Submit to Google Sheets
+                let result;
+                try {
+                    result = await submitToGoogleSheets(newEntry);
+                } catch (error) {
+                    result = {
+                        success: false,
+                        error: error.message || 'An unexpected error occurred'
+                    };
+                } finally {
+                    // Always re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+
+                if (result.success) {
+                    // Success - entry added to both local storage and Google Sheets
+                    showStatus(`✓ ${result.message || 'Entry added and saved to Google Sheets'}`, 'success');
+                    setTimeout(() => hideStatus(), 5000);
+                } else {
+                    // Error - show detailed error message
+                    const errorDetails = result.error || "Unknown error occurred";
+
+                    // Format error message for better readability
+                    let displayError = "⚠ Error saving to Google Sheets: ";
+
+                    if (errorDetails.includes('SHEET_ID is not configured')) {
+                        displayError = "⚠ Error: SHEET_ID not configured in Google Apps Script. Please update your script.";
+                    } else if (errorDetails.includes('not found')) {
+                        displayError = "⚠ Error: Sheet not found. Check SHEET_NAME in your Google Apps Script.";
+                    } else if (errorDetails.includes('CORS')) {
+                        displayError = "⚠ CORS Error: Run a local server (see warning above) and access via http://localhost:8000";
+                        corsWarning.style.display = 'block';
+                    } else if (errorDetails.includes('Network')) {
+                        displayError = "⚠ Network Error: Check your internet connection and try again.";
+                    } else {
+                        displayError = `⚠ ${errorDetails}`;
+                    }
+
+                    showStatus(displayError, 'error');
+
+                    // Also show a note that data was saved locally after 5 seconds
+                    setTimeout(() => {
+                        showStatus("Entry saved locally only. Fix the error above to sync with Google Sheets.", 'warning');
+                    }, 5000);
+                }
+
+                if (result.success) {
+                    clearForm();
+                }
+                render();
+            }
+
+            function clearForm() {
+                client.value = "";
+                phone.value = "";
+                date.value = "";
+                cashIn.value = "";
+                notes.value = "";
+            }
+
+            function render() {
+                const cyclesDiv = document.getElementById("cycles");
+                cyclesDiv.innerHTML = "";
+
+                let totalIn = 0, totalProfit = 0;
+
+                const grouped = {};
+
+                entries.forEach(e => {
+                    const c = getCycle(e.date);
+                    if (!grouped[c]) grouped[c] = [];
+                    grouped[c].push(e);
+                });
+
+                for (let c in grouped) {
+                    let cin = 0, profit = 0;
+
+                    const div = document.createElement("div");
+                    div.className = "cycle";
+                    div.innerHTML = `<h3>Cycle: ${c}</h3>`;
+
+                    let table = `<table>
+        <tr>
+            <th>Date</th><th>Client</th><th>Phone</th>
+            <th>Cash In</th><th>Plan</th><th>Profit</th>
+            <th>Cash Out Date</th><th>Notes</th>
+        </tr>`;
+
+                    grouped[c].forEach(e => {
+                        let p = e.plan == "1" ? e.cashIn * 0.05 : e.cashIn * 0.15;
+                        cin += e.cashIn;
+                        profit += p;
+
+                        // Calculate cash out date
+                        const cashOutDate = calculateCashOutDate(e.date, e.plan);
+
+                        table += `
+            <tr>
+                <td>${formatDate(e.date)}</td>
+                <td>${e.client}</td>
+                <td>${e.phone || '-'}</td>
+                <td>${e.cashIn.toFixed(2)}</td>
+                <td>${e.plan == "1" ? "5%" : "15%"}</td>
+                <td>${p.toFixed(2)}</td>
+                <td>${formatDate(cashOutDate)}</td>
+                <td>${e.notes || '-'}</td>
+            </tr>`;
+                    });
+
+                    table += "</table>";
+                    div.innerHTML += table;
+
+                    div.innerHTML += `
+        <div class="summary">
+        Cash In: ${cin.toFixed(2)} |
+        Profit: ${profit.toFixed(2)} |
+        Total Return: ${(cin + profit).toFixed(2)}
+        </div>`;
+
+                    cyclesDiv.appendChild(div);
+
+                    totalIn += cin;
+                    totalProfit += profit;
+                }
+
+                totalInSpan.innerText = totalIn.toFixed(2);
+                totalProfitSpan.innerText = totalProfit.toFixed(2);
+                netBalance.innerText = (totalIn + totalProfit).toFixed(2);
+            }
+
+            const totalInSpan = document.getElementById("totalIn");
+            const totalProfitSpan = document.getElementById("totalProfit");
+            const netBalance = document.getElementById("netBalance");
+
+            // Set max date to today
+            const dateInput = document.getElementById("date");
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.setAttribute('max', today);
+            }
+
+            // Add real-time validation
+            const clientInput = document.getElementById("client");
+            const phoneInput = document.getElementById("phone");
+            const cashInInput = document.getElementById("cashIn");
+            const planInput = document.getElementById("plan");
+
+            if (clientInput) {
+                clientInput.addEventListener('blur', function () {
+                    if (this.value && !validateClient(this.value)) {
+                        showFieldError('client', 'Invalid client name format');
+                    } else {
+                        showFieldError('client', '');
+                    }
+                });
+            }
+
+            if (phoneInput) {
+                phoneInput.addEventListener('blur', function () {
+                    if (this.value && !validatePhone(this.value)) {
+                        showFieldError('phone', 'Phone must contain 7-15 digits');
+                    } else {
+                        showFieldError('phone', '');
+                    }
+                });
+            }
+
+            if (cashInInput) {
+                cashInInput.addEventListener('blur', function () {
+                    if (this.value && !validateCashIn(this.value)) {
+                        showFieldError('cashIn', 'Enter a valid positive amount');
+                    } else {
+                        showFieldError('cashIn', '');
+                    }
+                });
+            }
+
+            if (dateInput) {
+                dateInput.addEventListener('change', function () {
+                    if (this.value && !validateDate(this.value)) {
+                        showFieldError('date', 'Date cannot be in the future');
+                    } else {
+                        showFieldError('date', '');
+                    }
+                });
+            }
+
+            // Initialize: render with local data first, then try to load from Google Sheets
+            render();
+
+            // Load data from Google Sheets on page load
+            loadFromSheets();
+        </script>
+
+    </body>
+
+</html>
