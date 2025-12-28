@@ -436,7 +436,7 @@
 
         <script>
             // Hardcoded Google Apps Script Web App URL
-            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOTuCEWCVk11PG2IrDTqs1GpAiBQXyDOOrN7RwGnx7af7bUqCTv51Kau-f9uC7rKya/exec"
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyic9Svjs4yczXWpu9Of57ddGS1R4hd5fRzqzs4fK7uS841P5ANETYhWgEEDTWW3Cs/exec"
 
             let entries = JSON.parse(localStorage.getItem("entries")) || [];
             const statusMsg = document.getElementById("statusMsg");
@@ -844,13 +844,14 @@
             }
 
             async function syncPaidStatusToSheets(entry) {
-                // This is a non-blocking sync - we don't wait for it
                 const scriptUrl = getScriptUrl();
                 if (!scriptUrl || window.location.protocol === 'file:') {
-                    return; // Skip if no URL or file:// protocol
+                    console.log('Skipping sync: no URL or file:// protocol');
+                    return;
                 }
 
                 try {
+                    // Use form-encoded POST with no-cors to avoid CORS preflight
                     const formData = new URLSearchParams();
                     formData.append('data', JSON.stringify({
                         action: 'updatePaid',
@@ -861,7 +862,8 @@
                         }
                     }));
 
-                    fetch(scriptUrl, {
+                    // Send update request
+                    await fetch(scriptUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: {
@@ -869,8 +871,36 @@
                         },
                         body: formData.toString()
                     });
+
+                    // Wait a moment for the write to complete, then verify
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    // Try to verify by fetching data (this will work with CORS for GET)
+                    try {
+                        const verifyResponse = await fetch(`${scriptUrl}?action=get`, {
+                            mode: 'cors'
+                        });
+
+                        if (verifyResponse.ok) {
+                            const verifyData = await verifyResponse.json();
+                            if (verifyData.success) {
+                                // Find our entry in the response
+                                const updatedEntry = verifyData.entries.find(e =>
+                                    e.date === entry.date && e.client === entry.client
+                                );
+                                if (updatedEntry && updatedEntry.paid === entry.paid) {
+                                    console.log('✓ Paid status synced successfully');
+                                } else {
+                                    console.log('⚠ Paid status may not have synced');
+                                }
+                            }
+                        }
+                    } catch (verifyError) {
+                        console.log('Could not verify paid status sync:', verifyError);
+                    }
+
                 } catch (error) {
-                    console.log('Failed to sync paid status:', error);
+                    console.error('Failed to sync paid status:', error);
                 }
             }
 

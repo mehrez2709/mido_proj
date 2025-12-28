@@ -87,16 +87,44 @@ function doPost(e) {
       const sheet = getSheet();
       const dataRange = sheet.getDataRange().getValues();
       
-      // Find the row to update
-      for (let i = 1; i < dataRange.length; i++) {
-        const row = dataRange[i];
-        if (String(row[0]) === String(updateData.date) && String(row[1]) === String(updateData.client)) {
-          // Update paid status (column index 6, which is column 7 in 1-based)
-          sheet.getRange(i + 1, 7).setValue(updateData.paid);
-          return createCorsResponse({ success: true, message: 'Paid status updated' });
+      // Check if Paid column exists, if not add it
+      const headers = dataRange[0];
+      let paidColumnIndex = 7; // Default to column 7 (index 6)
+      
+      // Find Paid column index
+      for (let h = 0; h < headers.length; h++) {
+        if (String(headers[h]).toLowerCase() === 'paid') {
+          paidColumnIndex = h + 1; // Convert to 1-based
+          break;
         }
       }
-      return createCorsResponse({ success: false, error: 'Entry not found' });
+      
+      // If Paid column doesn't exist, add it
+      if (paidColumnIndex > headers.length) {
+        sheet.getRange(1, paidColumnIndex).setValue('Paid');
+        paidColumnIndex = headers.length + 1;
+      }
+      
+      // Find the row to update (match by date and client)
+      let found = false;
+      for (let i = 1; i < dataRange.length; i++) {
+        const row = dataRange[i];
+        const rowDate = row[0] instanceof Date ? row[0].toISOString().split('T')[0] : String(row[0]);
+        const rowClient = String(row[1]).trim();
+        const updateDate = String(updateData.date).trim();
+        const updateClient = String(updateData.client).trim();
+        
+        if (rowDate === updateDate && rowClient === updateClient) {
+          // Update paid status
+          sheet.getRange(i + 1, paidColumnIndex).setValue(updateData.paid === true || updateData.paid === 'true' || updateData.paid === 1);
+          found = true;
+          return createCorsResponse({ success: true, message: 'Paid status updated successfully' });
+        }
+      }
+      
+      if (!found) {
+        return createCorsResponse({ success: false, error: 'Entry not found. Date: ' + updateData.date + ', Client: ' + updateData.client });
+      }
     }
     
     if (data.action === 'add' && data.data) {
@@ -262,4 +290,5 @@ function doGet(e) {
     return createCorsResponse({ success: false, error: error.toString() });
   }
 }
+
 
